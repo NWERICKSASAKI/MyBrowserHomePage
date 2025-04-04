@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloco de Notas Persistente</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 95vh;
+            background-color: #f4f4f4;
+            transition: background-color 0.3s, color 0.3s;
+            padding-top: 20px;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .link-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        .link-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .link-item {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .hidden {
+            display: none;
+        }
+        textarea {
+            width: 90%;
+            height: 80vh;
+            padding: 10px;
+            font-size: 18px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: none;
+            transition: background-color 0.3s, color 0.3s;
+            margin-top: 20px;
+        }
+        button, label {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #333;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .link-button {
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover, label:hover, .link-button:hover {
+            background-color: #555;
+        }
+        .dark-mode {
+            background-color: #333;
+            color: white;
+        }
+        .dark-mode textarea {
+            background-color: #222;
+            color: white;
+            border: 1px solid #555;
+        }
+        .dark-mode button, .dark-mode label {
+            background-color: #bbb;
+            color: black;
+        }
+        .dark-mode button:hover, .dark-mode label:hover {
+            background-color: #ddd;
+        }
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="button-container">
+        <button id="toggle-theme">🌞/🌙</button>
+        <button id="export-txt">Exportar TXT</button>
+        <label for="import-txt">Importar TXT</label>
+        <input type="file" id="import-txt" accept=".txt">
+        <button id="toggle-link-form">➕</button>
+    </div>
+    
+    <div class="link-container">
+        <div id="link-form" class="hidden">
+            <input type="text" id="link-text" placeholder="Texto do botão">
+            <input type="url" id="link-url" placeholder="URL">
+            <button id="add-link">Adicionar Link</button>
+        </div>
+        <div id="links-list" class="link-buttons"></div>
+    </div>
+    
+    <textarea id="notepad" placeholder="Digite seu texto aqui..."></textarea>
+    
+    <script>
+        const textarea = document.getElementById('notepad');
+        const toggleButton = document.getElementById('toggle-theme');
+        const exportButton = document.getElementById('export-txt');
+        const importInput = document.getElementById('import-txt');
+        const body = document.body;
+        const linkTextInput = document.getElementById('link-text');
+        const linkUrlInput = document.getElementById('link-url');
+        const addLinkButton = document.getElementById('add-link');
+        const linksList = document.getElementById('links-list');
+        const toggleLinkFormButton = document.getElementById('toggle-link-form');
+        const linkForm = document.getElementById('link-form');
+
+        textarea.value = localStorage.getItem('savedText') || '';
+        textarea.addEventListener('input', () => {
+            localStorage.setItem('savedText', textarea.value);
+        });
+
+        if (localStorage.getItem('theme') === 'dark') {
+            body.classList.add('dark-mode');
+        }
+
+        toggleButton.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', body.classList.contains('dark-mode') ? 'dark' : 'light');
+        });
+
+        toggleLinkFormButton.addEventListener('click', () => {
+            linkForm.classList.toggle('hidden');
+        });
+
+        exportButton.addEventListener('click', () => {
+            const blob = new Blob([textarea.value], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'notas.txt';
+            a.click();
+        });
+
+        importInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    textarea.value = e.target.result;
+                    localStorage.setItem('savedText', textarea.value);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        function loadLinks() {
+            linksList.innerHTML = '';
+            const links = JSON.parse(localStorage.getItem('links')) || [];
+            links.forEach((link) => {
+                const a = document.createElement('a');
+                a.href = link.url;
+                a.textContent = link.text;
+                a.classList.add('link-button');
+                a.target = "_blank";
+                linksList.appendChild(a);
+            });
+        }
+
+        function saveLinks(links) {
+            localStorage.setItem('links', JSON.stringify(links));
+            loadLinks();
+        }
+
+        addLinkButton.addEventListener('click', () => {
+            const text = linkTextInput.value;
+            const url = linkUrlInput.value;
+            if (text && url) {
+                const links = JSON.parse(localStorage.getItem('links')) || [];
+                links.push({ text, url });
+                saveLinks(links);
+                linkTextInput.value = '';
+                linkUrlInput.value = '';
+                linkForm.classList.add('hidden');
+            }
+        });
+
+        loadLinks();
+    </script>
+</body>
+</html>
